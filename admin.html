@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sajek - 管理者ログイン</title>
+<style>
+#loginScreen{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:#1a202c;flex-direction:column}
+#loginScreen .login-box{background:#fff;border-radius:16px;padding:40px;width:90%;max-width:400px;box-shadow:0 25px 50px rgba(0,0,0,.5)}
+#loginScreen h2{font-size:24px;font-weight:700;color:#1e293b;margin-bottom:6px}
+#loginScreen p{color:#64748b;font-size:14px;margin-bottom:24px}
+#loginScreen input{margin-bottom:12px}
+#loginScreen .error{color:#ef4444;font-size:13px;margin-top:8px;display:none}
+#loginScreen .login-btn{background:#374151;color:#fff;border:none;padding:10px;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;width:100%;transition:background .2s}
+#loginScreen .login-btn:hover{background:#1f2937}
+body.logged-in #loginScreen{display:none}
+</style>
+<script src="https://cdn.tailwindcss.com">
+</script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+*{font-family:'Inter',sans-serif;margin:0;padding:0;box-sizing:border-box}
+body{background:#e5e7eb;display:flex;min-height:100vh}
+.sidebar{width:240px;min-height:100vh;background:linear-gradient(180deg,#374151 0%,#1f2937 100%);color:#fff;position:fixed;left:0;top:0;z-index:50;display:flex;flex-direction:column;transition:transform .3s}
+.sidebar-logo{padding:24px 20px 16px;border-bottom:1px solid rgba(255,255,255,.08)}
+.sidebar-logo h1{font-size:22px;font-weight:800;letter-spacing:1px}
+.sidebar-logo p{font-size:11px;opacity:.6;margin-top:2px;letter-spacing:2px}
+.sidebar-menu{padding:12px 0;flex:1}
+.menu-item{display:flex;align-items:center;gap:12px;padding:14px 24px;cursor:pointer;transition:all .2s;font-size:14px;font-weight:500;color:rgba(255,255,255,.7);border-left:3px solid transparent}
+.menu-item:hover{background:rgba(255,255,255,.08);color:#fff}
+.menu-item.active{background:rgba(255,255,255,.12);color:#fff;border-left-color:#9ca3af}
+.menu-item .icon{font-size:18px;width:24px;text-align:center}
+.admin-badge{background:#6b7280;color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;margin-left:auto}
+.viewer-link{display:flex;align-items:center;gap:8px;padding:14px 24px;cursor:pointer;transition:all .2s;font-size:13px;font-weight:500;color:rgba(255,255,255,.5);border-top:1px solid rgba(255,255,255,.08);margin-top:auto}
+.viewer-link:hover{color:#60a5fa}
+.main-content{margin-left:240px;flex:1;padding:32px 40px;min-height:100vh;max-width:calc(100vw - 240px)}
+.page{display:none;animation:fadeIn .35s ease}
+.page.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.page-header{margin-bottom:28px}
+.page-header h2{font-size:26px;font-weight:700;color:#1f2937}
+.page-header p{color:#6b7280;font-size:14px;margin-top:4px}
+.card{background:#f9fafb;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,.1);padding:24px;margin-bottom:20px}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 18px;border-radius:8px;font-size:13px;font-weight:600;border:none;cursor:pointer;transition:all .2s}
+.btn-primary{background:#4b5563;color:#fff}
+.btn-primary:hover{background:#374151}
+.btn-danger{background:#6b7280;color:#fff}
+.btn-danger:hover{background:#4b5563}
+.btn-success{background:#16a34a;color:#fff}
+.btn-success:hover{background:#15803d}
+.btn-warning{background:#f59e0b;color:#fff}
+.btn-sm{padding:5px 12px;font-size:12px}
+.btn-ghost{background:transparent;color:#6b7280;border:1px solid #d1d5db}
+.btn-ghost:hover{background:#e5e7eb}
+input,textarea,select{padding:8px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;outline:none;transition:border .2s;width:100%}
+input:focus,textarea:focus,select:focus{border-color:#9ca3af;box-shadow:0 0 0 3px rgba(156,163,175,.15)}
+textarea{resize:vertical;min-height:80px}
+.form-group{margin-bottom:14px}
+.form-group label{display:block;font-size:13px;font-weight:600;color:#4b5563;margin-bottom:4px}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:100;backdrop-filter:blur(4px)}
+.modal-overlay.open{display:flex}
+.modal{background:#fff;border-radius:16px;padding:28px;width:90%;max-width:520px;max-height:85vh;overflow-y:auto;box-shadow:0 25px 50px rgba(0,0,0,.25)}
+.modal h3{font-size:18px;font-weight:700;color:#1e293b;margin-bottom:16px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{padding:10px 12px;text-align:left;border-bottom:1px solid #d1d5db}
+th{background:#f3f4f6;font-weight:600;color:#4b5563;font-size:12px;text-transform:uppercase;letter-spacing:.5px;position:sticky;top:0}
+tr:hover td{background:#f3f4f6}
+.schedule-dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px}
+.color-red{background:#ef4444}.color-blue{background:#3b82f6}.color-green{background:#22c55e}.color-yellow{background:#eab308}
+.attendance-table{overflow-x:auto}
+.attendance-table td{cursor:pointer;text-align:center;min-width:48px;user-select:none;font-weight:700;font-size:15px;transition:all .15s}
+.attendance-table td:hover{opacity:.8}
+.attendance-table td.circle{background:#d1d5db;color:#000}
+.attendance-table td.cross{background:#fff;color:#ef4444}
+.attendance-table th:first-child,.attendance-table td:first-child{position:sticky;left:0;background:#f9fafb;z-index:2;min-width:100px}
+.attendance-table th:first-child{z-index:3}
+.attendance-table th{background:#f3f4f6;z-index:1}
+.attendance-table .grade-sep td{background:#e5e7eb!important;font-weight:700;color:#374151;font-size:12px;text-align:left;padding:6px 12px;border-bottom:2px solid #9ca3af;cursor:default}
+.photo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px}
+.photo-item{border-radius:10px;overflow:hidden;cursor:pointer;position:relative;aspect-ratio:1;background:#e5e7eb}
+.photo-item img{width:100%;height:100%;object-fit:cover;transition:transform .3s}
+.photo-item:hover img{transform:scale(1.08)}
+.folder-item{display:flex;align-items:center;gap:12px;padding:12px 16px;background:#f9fafb;border-radius:10px;cursor:pointer;transition:all .2s;border:1px solid #d1d5db}
+.folder-item:hover{background:#e5e7eb;border-color:#9ca3af}
+.folder-item .folder-icon{font-size:28px}
+.modal-img{position:fixed;inset:0;background:rgba(0,0,0,.9);display:none;align-items:center;justify-content:center;z-index:200;backdrop-filter:blur(8px)}
+.modal-img.open{display:flex}
+.modal-img img{max-width:90vw;max-height:85vh;border-radius:8px;object-fit:contain}
+.modal-img .close-btn{position:absolute;top:20px;right:20px;color:#fff;font-size:28px;cursor:pointer;opacity:.7;transition:.2s;background:rgba(255,255,255,.15);width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:none}
+.modal-img .close-btn:hover{opacity:1;background:rgba(255,255,255,.25)}
+.download-btn{position:absolute;top:20px;right:76px;color:#fff;font-size:20px;cursor:pointer;opacity:.7;transition:.2s;background:rgba(255,255,255,.15);width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:none;text-decoration:none}
+.download-btn:hover{opacity:1;background:rgba(255,255,255,.25)}
+.breadcrumb{display:flex;align-items:center;gap:6px;font-size:13px;color:#6b7280;margin-bottom:16px;flex-wrap:wrap}
+.breadcrumb span{cursor:pointer;color:#374151}
+.breadcrumb span:hover{text-decoration:underline}
+.breadcrumb .sep{color:#9ca3af}
+.empty-state{text-align:center;padding:40px 20px;color:#9ca3af}
+.empty-state .icon{font-size:48px;margin-bottom:12px}
+.calendar-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;max-width:800px;margin:0 auto}
+.calendar-header{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;max-width:800px;margin:0 auto 8px}
+.calendar-header div{text-align:center;font-weight:600;font-size:12px;color:#6b7280;padding:4px 0}
+.calendar-day{aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:10px;cursor:pointer;font-size:14px;font-weight:500;transition:all .2s;position:relative;min-height:60px;background:#fff;border:1px solid #d1d5db}
+.calendar-day:hover{background:#e5e7eb;border-color:#9ca3af}
+.calendar-day.other-month{opacity:.3}
+.calendar-day.today{border-color:#374151;border-width:2px;font-weight:700}
+.calendar-day.disabled{background:#e5e7eb!important;color:#9ca3af!important;cursor:not-allowed!important;border-color:#d1d5db!important}
+.calendar-day.disabled:hover{background:#e5e7eb!important}
+.calendar-day .has-booking{position:absolute;bottom:4px;left:50%;transform:translateX(-50%);width:6px;height:6px;border-radius:50%;background:#f59e0b}
+.calendar-nav{display:flex;align-items:center;justify-content:space-between;max-width:800px;margin:0 auto 16px}
+.calendar-nav button{background:none;border:1px solid #d1d5db;border-radius:8px;padding:6px 14px;cursor:pointer;font-size:14px;font-weight:500;color:#4b5563}
+.calendar-nav button:hover{background:#e5e7eb}
+.calendar-nav .month-label{font-size:18px;font-weight:700;color:#1f2937}
+.schedule-clickable{cursor:pointer}
+.schedule-clickable:hover{opacity:.7}
+@media(max-width:768px){
+.sidebar{transform:translateX(-100%);width:100%;max-width:280px}
+.sidebar.open{transform:translateX(0)}
+.main-content{margin-left:0;padding:20px;max-width:100vw}
+.mobile-hamburger{display:block!important;position:fixed;top:16px;left:16px;z-index:60;background:#374151;color:#fff;border:none;border-radius:8px;padding:10px 14px;font-size:18px;cursor:pointer}
+.calendar-day{min-height:44px;font-size:12px}
+.calendar-grid,.calendar-header{gap:3px}
+}
+.mobile-hamburger{display:none}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1e293b;color:#fff;padding:12px 24px;border-radius:10px;font-size:13px;font-weight:500;z-index:300;opacity:0;transition:all .3s;pointer-events:none}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.warning-text{color:#dc2626;font-weight:700;font-size:15px;line-height:1.7;padding:16px;background:#f3f4f6;border-radius:8px;border:1px solid #d1d5db;margin-bottom:16px}
+</style>
+</head>
+<body>
+
+<div id="loginScreen">
+  <div class="login-box">
+    <h2>Sajek 管理者</h2>
+    <p>管理者認証を行ってください</p>
+    <input type="email" id="loginEmail" placeholder="メールアドレス" style="width:100%;padding:10px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;box-sizing:border-box">
+    <input type="password" id="loginPass" placeholder="パスワード" style="width:100%;padding:10px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;box-sizing:border-box">
+    <button class="login-btn" onclick="handleLogin()">ログイン</button>
+    <div class="error" id="loginError">メールアドレスまたはパスワードが違います</div>
+  </div>
+</div>
+
+<button class="mobile-hamburger" onclick="toggleSidebar()">☰</button>
+
+<div class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <h1>Sajek</h1>
+    <p>軽音楽部 管理者ページ</p>
+  </div>
+  <div class="sidebar-menu" id="menuItems"></div>
+  <div class="viewer-link" onclick="window.location.href='index.html'">👤 部員ページへ</div>
+</div>
+
+<div class="main-content" id="mainContent">
+  <div id="pages"></div>
+</div>
+
+<div class="modal-overlay" id="modalOverlay"><div class="modal" id="modalContent"></div></div>
+<div class="modal-img" id="modalImg"><div style="position:relative;display:flex;align-items:center;justify-content:center">
+  <img id="modalImgSrc" src="" alt="">
+  <button class="close-btn" onclick="closeImgModal()">✕</button>
+  <a class="download-btn" id="downloadBtn" href="" download>↓</a>
+</div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+const STORAGE_KEY = 'sajek_data';
+const MENU = ['部の方針','予定表','ホール予約','部内連絡','部会出席可否','Sajek写真館'];
+const SCHEDULE_COLORS = [
+  {label:'赤（ライブ・イベント当日）',value:'red'},
+  {label:'青（部会）',value:'blue'},
+  {label:'黄（イベント）',value:'yellow'},
+  {label:'緑（提出〆切）',value:'green'}
+];
+const MEMBERS = [
+  {grade:'3年生',names:['今野尊弥']},
+];
+const allMembers = MEMBERS.flatMap(g=>g.names);
+
+function isJapaneseHoliday(date){
+  const m=date.getMonth()+1, d=date.getDate(), dow=date.getDay();
+  const key=m+'-'+d;
+  const holidays = {'1-1':'元日','1-13':'成人の日','2-11':'建国記念の日','2-23':'天皇誕生日','3-21':'春分の日','4-29':'昭和の日','5-3':'憲法記念日','5-4':'みどりの日','5-5':'こどもの日','7-20':'海の日','8-11':'山の日','9-15':'敬老の日','9-23':'秋分の日','10-14':'体育の日','11-3':'文化の日','11-23':'勤労感謝の日'};
+  const holidays2026 = {'7-20':'海の日','8-11':'山の日','9-21':'敬老の日','9-22':'秋分の日','10-12':'体育の日'};
+  const h = holidays2026[key] || holidays[key];
+  if(h) return true;
+  if(m===1 && dow===1 && d>=15 && d<=21) return true;
+  if(m===9 && dow===1 && d>=15 && d<=21) return true;
+  if(m===10 && dow===1 && d>=8 && d<=14) return true;
+  if(m===7 && dow===1 && d>=8 && d<=14) return true;
+  return false;
+}
+function isBusinessDay(date){const dow=date.getDay();return !(dow===0||dow===6)&&!isJapaneseHoliday(date);}
+function countBusinessDaysUntil(targetDate){
+  const today=new Date();today.setHours(0,0,0,0);
+  const target=new Date(targetDate);target.setHours(0,0,0,0);
+  if(target<=today) return 0;
+  let count=0;const d=new Date(today);d.setDate(d.getDate()+1);
+  while(d<=target){if(isBusinessDay(d)) count++;d.setDate(d.getDate()+1);}
+  return count;
+}
+
+let data = loadData();
+let currentPage = 0;
+let photoPath = [];
+let uploadFile = null;
+let uploadFolder = '';
+let hallCalMonth = new Date().getMonth();
+let hallCalYear = new Date().getFullYear();
+let editSid = null;
+
+function loadData(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw){const d=JSON.parse(raw);if(!d.attendance)d.attendance={};if(!d.photos||typeof d.photos!='object')d.photos={'その他':[]};if(!d.bookings)d.bookings=[];return d;}
+  }catch(e){}
+  return {
+    policy:'「自由に音楽を鳴らせる部活」2023年創部のSajek。着々と部員数を増やしつつ現在猛進中',
+    schedules:[
+      {id:1,date:'2026-07-21',title:'夏季合宿 1日目',color:'blue',detail:'合宿所にて。集合 9:00'},
+      {id:2,date:'2026-07-22',title:'夏季合宿 2日目',color:'blue',detail:'合宿所にて。解散 16:00予定'},
+      {id:3,date:'2026-07-25',title:'スタジオ練習',color:'green',detail:'SoundBaseにて 13:00〜17:00'},
+      {id:4,date:'2026-08-15',title:'文化祭本番',color:'red',detail:'10:00開場 11:00演奏開始'},
+      {id:5,date:'2026-07-19',title:'部会',color:'blue',detail:'音楽室にて 放課後'},
+      {id:6,date:'2026-07-30',title:'新入生歓迎会',color:'yellow',detail:'視聴覚室 15:00〜'},
+      {id:7,date:'2026-08-01',title:'楽譜提出〆切',color:'green',detail:'各バンドリーダーまで'},
+    ],
+    messages:[
+      {id:1,date:'2026-01-15',title:'【重要】新年度の部活スケジュールについて',body:'新年度の活動スケジュールが決定しました。詳細は予定表を確認してください。'},
+      {id:2,date:'2026-02-20',title:'文化祭の出場決定！',body:'今年の文化祭への参加が正式に決定しました。8/15の本番に向けて準備を始めましょう。'},
+      {id:3,date:'2026-03-10',title:'合宿参加者募集',body:'夏季合宿の参加者を募集中です。7/21〜7/22の日程で行います。'},
+      {id:4,date:'2026-04-05',title:'新入生歓迎会のお知らせ',body:'4/15に新入生歓迎会を行います。既存部員は必ず参加してください。'},
+      {id:5,date:'2026-05-01',title:'部費納入のお願い',body:'前期部費の納入期限は5/20です。忘れずに納入してください。'},
+    ],
+    bookings:[
+      {id:1,date:'2026-07-28',band:'The Sound Breakers',person:'佐藤日向翔'},
+      {id:2,date:'2026-07-29',band:'蒼空',person:'今野尊弥'},
+      {id:3,date:'2026-08-05',band:'エレクトリックマーメイド',person:'西まゆ菜'},
+    ],
+    attendance:{},
+    photos:{'新入生歓迎会':[],'文化祭':[],'合宿':[],'その他':[]}
+  };
+}
+function saveData(){localStorage.setItem(STORAGE_KEY,JSON.stringify(data));}
+
+function handleLogin(){
+  const email=document.getElementById('loginEmail').value.trim();
+  const pass=document.getElementById('loginPass').value.trim();
+  if(email==='224c0204@s.obirin.ac.jp' && pass==='Sajek-Homepage-kanri'){
+    document.body.classList.add('logged-in');
+    render();
+  }else{
+    document.getElementById('loginError').style.display='block';
+  }
+}
+document.addEventListener('keydown',function(e){if(e.key==='Enter')handleLogin();});
+
+function render(){
+  renderMenu();
+  renderPage(currentPage);
+}
+function renderMenu(){
+  document.getElementById('menuItems').innerHTML = MENU.map((m,i)=>`
+    <div class="menu-item ${i===currentPage?'active':''}" onclick="navigate(${i})">
+      <span class="icon">${['📋','📅','🏛️','📢','✅','📸'][i]||'📄'}</span>
+      <span>${m}</span>
+      ${i===0?'<span class="admin-badge">編集可</span>':''}
+      ${(i===1||i===2||i===3||i===4||i===5)?'<span class="admin-badge">管理</span>':''}
+    </div>
+  `).join('');
+}
+function navigate(i){
+  currentPage=i;
+  if(i===2){hallCalMonth=new Date().getMonth();hallCalYear=new Date().getFullYear();}
+  render();
+  if(window.innerWidth<=768) document.getElementById('sidebar').classList.remove('open');
+}
+function toggleSidebar(){document.getElementById('sidebar').classList.toggle('open');}
+function renderPage(i){
+  const titles = ['部の方針','予定表','ホール予約','部内連絡','部会出席可否','Sajek写真館'];
+  const descs = ['部の運営方針を編集できます','練習スケジュールやイベント予定を管理','ホールの予約状況を管理','部内の連絡事項を管理','部会の出欠を管理','写真を管理できます'];
+  document.getElementById('pages').innerHTML = `<div class="page active">
+    <div class="page-header"><h2>${titles[i]}</h2><p>${descs[i]}</p></div>
+    ${[renderPolicy,renderSchedule,renderHallBooking,renderMessages,renderAttendance,renderPhotos][i]()}
+  </div>`;
+}
+
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  clearTimeout(t._timer);t._timer=setTimeout(()=>t.classList.remove('show'),2500);
+}
+function openModal(html){document.getElementById('modalContent').innerHTML=html;document.getElementById('modalOverlay').classList.add('open');}
+function closeModal(){document.getElementById('modalOverlay').classList.remove('open');}
+document.getElementById('modalOverlay').addEventListener('click',e=>{if(e.target===document.getElementById('modalOverlay')) closeModal();});
+
+// 1. POLICY
+function renderPolicy(){
+  return `<div class="card">
+    <div style="font-size:15px;line-height:1.8;white-space:pre-wrap;color:#334155;margin-bottom:16px">${escHtml(data.policy)}</div>
+    <div class="form-group"><textarea id="policyInput" rows="5">${escHtml(data.policy)}</textarea></div>
+    <button class="btn btn-primary" onclick="savePolicy()">保存</button>
+  </div>`;
+}
+function savePolicy(){data.policy=document.getElementById('policyInput').value;saveData();showToast('保存しました');render();}
+
+// 2. SCHEDULE
+function renderSchedule(){
+  const sorted=[...data.schedules].sort((a,b)=>a.date.localeCompare(b.date));
+  const rows=sorted.map(s=>`<tr class="schedule-clickable" onclick="showScheduleDetail(${s.id})">
+    <td style="white-space:nowrap">${s.date}</td>
+    <td><span class="schedule-dot color-${s.color}"></span>${escHtml(s.title)}</td>
+    <td style="text-align:right" onclick="event.stopPropagation()">
+      <button class="btn btn-sm btn-ghost" onclick="editSchedule(${s.id})">編集</button>
+      <button class="btn btn-sm btn-danger" onclick="deleteSchedule(${s.id})">削除</button>
+    </td>
+  </tr>`).join('');
+  return `<div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px">
+      <div style="display:flex;gap:10px;flex-wrap:wrap">${SCHEDULE_COLORS.map(c=>`<span style="display:flex;align-items:center;gap:3px;font-size:12px;color:#6b7280"><span class="schedule-dot color-${c.value}"></span>${c.label}</span>`).join('')}</div>
+      <button class="btn btn-primary" onclick="addSchedule()">+ 予定を追加</button>
+    </div>
+    <div style="overflow-x:auto"><table><thead><tr><th>日付</th><th>予定</th><th style="width:120px"></th></tr></thead>
+    <tbody>${rows||'<tr><td colspan="3" style="text-align:center;color:#9ca3af">予定はありません</td></tr>'}</tbody></table></div>
+  </div>`;
+}
+function showScheduleDetail(id){
+  const s=data.schedules.find(x=>x.id===id);if(!s)return;
+  const colorLabel=SCHEDULE_COLORS.find(c=>c.value===s.color)?.label||s.color;
+  openModal(`<h3>${escHtml(s.title)}</h3>
+    <div style="margin-bottom:12px"><span class="schedule-dot color-${s.color}"></span><span style="font-size:13px;color:#6b7280">${colorLabel}</span></div>
+    <div style="font-size:13px;color:#4b5563;margin-bottom:4px"><strong>日付:</strong> ${s.date}</div>
+    ${s.detail?`<div style="font-size:14px;color:#334155;margin-top:8px;padding:12px;background:#f3f4f6;border-radius:8px;white-space:pre-wrap">${escHtml(s.detail)}</div>`:''}
+    <div style="margin-top:16px"><button class="btn btn-ghost" onclick="closeModal()">閉じる</button></div>`);
+}
+function addSchedule(){editSid=null;openModal(`<h3>予定を追加</h3>
+  <div class="form-group"><label>日付</label><input type="date" id="sDate" value="${new Date().toISOString().slice(0,10)}"></div>
+  <div class="form-group"><label>予定名</label><input type="text" id="sTitle" placeholder="予定名"></div>
+  <div class="form-group"><label>詳細</label><textarea id="sDetail" rows="2" placeholder="詳細（任意）"></textarea></div>
+  <div class="form-group"><label>カラーラベル</label>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">${SCHEDULE_COLORS.map(c=>`<label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:13px"><input type="radio" name="sColor" value="${c.value}" ${c.value==='blue'?'checked':''}><span class="schedule-dot color-${c.value}"></span>${c.label}</label>`).join('')}</div>
+  </div>
+  <div style="display:flex;gap:8px;margin-top:8px"><button class="btn btn-primary" onclick="submitSchedule()">追加</button><button class="btn btn-ghost" onclick="closeModal()">キャンセル</button></div>`);}
+function editSchedule(id){const s=data.schedules.find(x=>x.id===id);if(!s)return;editSid=id;openModal(`<h3>予定を編集</h3>
+  <div class="form-group"><label>日付</label><input type="date" id="sDate" value="${s.date}"></div>
+  <div class="form-group"><label>予定名</label><input type="text" id="sTitle" value="${escHtml(s.title)}"></div>
+  <div class="form-group"><label>詳細</label><textarea id="sDetail" rows="2">${escHtml(s.detail||'')}</textarea></div>
+  <div class="form-group"><label>カラーラベル</label>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">${SCHEDULE_COLORS.map(c=>`<label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:13px"><input type="radio" name="sColor" value="${c.value}" ${c.value===s.color?'checked':''}><span class="schedule-dot color-${c.value}"></span>${c.label}</label>`).join('')}</div>
+  </div>
+  <div style="display:flex;gap:8px;margin-top:8px"><button class="btn btn-primary" onclick="submitSchedule()">保存</button><button class="btn btn-ghost" onclick="closeModal()">キャンセル</button></div>`);}
+function submitSchedule(){const date=document.getElementById('sDate').value;const title=document.getElementById('sTitle').value.trim();const detail=document.getElementById('sDetail')?.value.trim()||'';const color=document.querySelector('input[name="sColor"]:checked')?.value||'blue';if(!date||!title){showToast('日付と予定名を入力してください');return;}if(editSid){const s=data.schedules.find(x=>x.id===editSid);if(s){s.date=date;s.title=title;s.color=color;s.detail=detail;}}else{data.schedules.push({id:Date.now(),date,title,color,detail});}saveData();closeModal();showToast('保存しました');render();}
+function deleteSchedule(id){if(!confirm('削除しますか？'))return;data.schedules=data.schedules.filter(s=>s.id!==id);saveData();showToast('削除しました');render();}
+
+// 3. HALL BOOKING
+function renderHallBooking(){
+  return `<div class="card">
+    <div class="warning-text">※予約受付は、予約希望日の「土日祝を除いた4日前の23:59まで」となります。（例：7/5(月)が希望日の場合、土日を挟むため6/29(火)の23:59が期限となります）</div>
+    ${renderHallCalendar()}
+    ${`<div style="display:flex;gap:16px;font-size:12px;color:#6b7280;margin-top:16px;flex-wrap:wrap;align-items:center">
+      <span style="display:flex;align-items:center;gap:4px"><span style="display:inline-block;width:14px;height:14px;background:#fff;border:1px solid #d1d5db;border-radius:3px"></span>予約可</span>
+      <span style="display:flex;align-items:center;gap:4px"><span style="display:inline-block;width:14px;height:14px;background:#e5e7eb;border-radius:3px"></span>予約不可</span>
+      <span style="display:flex;align-items:center;gap:4px"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#f59e0b"></span>予約あり</span>
+    </div>`}
+  </div>`;
+}
+function renderHallCalendar(){
+  const year=hallCalYear, month=hallCalMonth;
+  const today=new Date();today.setHours(0,0,0,0);
+  const firstDay=new Date(year,month,1), lastDay=new Date(year,month+1,0);
+  const startPad=firstDay.getDay(), totalDays=lastDay.getDate();
+  let html=`<div class="calendar-nav">
+    <button onclick="changeHallMonth(-1)">←</button>
+    <span class="month-label">${year}年 ${month+1}月</span>
+    <button onclick="changeHallMonth(1)">→</button>
+  </div><div class="calendar-header">${['日','月','火','水','木','金','土'].map(d=>`<div>${d}</div>`).join('')}</div>
+  <div class="calendar-grid">`;
+  for(let i=0;i<startPad;i++) html+=`<div></div>`;
+  for(let d=1;d<=totalDays;d++){
+    const dateObj=new Date(year,month,d), dateStr=dateStrFormat(dateObj);
+    const isToday=dateObj.getTime()===today.getTime(), isPast=dateObj<today;
+    const isWeekend=dateObj.getDay()===0||dateObj.getDay()===6;
+    const canBook=!isPast&&!isWeekend&&countBusinessDaysUntil(dateStr)>=4;
+    const booking=data.bookings.find(b=>b.date===dateStr);
+    html+=`<div class="calendar-day${isToday?' today':''}${!canBook?' disabled':''}" onclick="${canBook?`openHallBooking('${dateStr}')`:''}">
+      <div>${d}</div>${booking?'<div class="has-booking"></div>':''}
+      ${booking?`<div style="font-size:8px;color:#92400e;line-height:1.2;text-align:center">${escHtml(booking.band)}</div>`:''}
+    </div>`;
+  }
+  return html+`</div>`;
+}
+function dateStrFormat(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
+function changeHallMonth(delta){hallCalMonth+=delta;if(hallCalMonth<0){hallCalMonth=11;hallCalYear--;}if(hallCalMonth>11){hallCalMonth=0;hallCalYear++;}render();}
+function openHallBooking(dateStr){
+  const existing=data.bookings.find(b=>b.date===dateStr);
+  if(existing){openModal(`<h3>${dateStr} の予約情報</h3>
+    <div style="margin-bottom:8px"><strong>バンド名:</strong> ${escHtml(existing.band)}</div>
+    <div style="margin-bottom:16px"><strong>入力者:</strong> ${escHtml(existing.person)}</div>
+    <button class="btn btn-danger btn-sm" onclick="deleteHallBooking(${existing.id})">予約を削除</button>
+    <div style="margin-top:8px"><button class="btn btn-ghost" onclick="closeModal()">閉じる</button></div>`);return;}
+  openModal(`<h3>ホール予約 - ${dateStr}</h3>
+    <div class="form-group"><label>バンド名</label><input type="text" id="hallBand" placeholder="バンド名"></div>
+    <div class="form-group"><label>入力者名</label><input type="text" id="hallPerson" placeholder="入力者名"></div>
+    <div style="display:flex;gap:8px;margin-top:8px"><button class="btn btn-primary" onclick="submitHallBooking('${dateStr}')">予約</button><button class="btn btn-ghost" onclick="closeModal()">キャンセル</button></div>`);
+}
+function submitHallBooking(dateStr){const band=document.getElementById('hallBand').value.trim();const person=document.getElementById('hallPerson').value.trim();if(!band||!person){showToast('バンド名と入力者名を入力してください');return;}data.bookings.push({id:Date.now(),date:dateStr,band,person});saveData();closeModal();showToast('予約しました');render();}
+function deleteHallBooking(id){if(!confirm('予約を削除しますか？'))return;data.bookings=data.bookings.filter(b=>b.id!==id);saveData();closeModal();showToast('削除しました');render();}
+
+// 4. MESSAGES
+function renderMessages(){
+  const sixMonthsAgo=new Date();sixMonthsAgo.setMonth(sixMonthsAgo.getMonth()-6);
+  const valid=data.messages.filter(m=>new Date(m.date)>=sixMonthsAgo);
+  const cards=valid.map(m=>`<div style="padding:16px 0;border-bottom:1px solid #d1d5db">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+      <div><div style="font-size:11px;color:#9ca3af;margin-bottom:2px">${m.date}</div>
+      <div style="font-weight:600;color:#1f2937;margin-bottom:4px">${escHtml(m.title)}</div>
+      <div style="font-size:14px;color:#4b5563;white-space:pre-wrap">${escHtml(m.body)}</div></div>
+      <button class="btn btn-sm btn-danger" onclick="deleteMessage(${m.id})">削除</button>
+    </div></div>`).join('');
+  return `<div class="card"><button class="btn btn-primary" onclick="addMessage()" style="margin-bottom:12px">+ 新規連絡</button>${cards||'<div class="empty-state"><div class="icon">📢</div>連絡事項はありません</div>'}</div>`;
+}
+function addMessage(){openModal(`<h3>新規連絡</h3><div class="form-group"><label>タイトル</label><input type="text" id="msgTitle" placeholder="タイトル"></div><div class="form-group"><label>本文</label><textarea id="msgBody" rows="4" placeholder="本文"></textarea></div><div style="display:flex;gap:8px;margin-top:8px"><button class="btn btn-primary" onclick="submitMessage()">投稿</button><button class="btn btn-ghost" onclick="closeModal()">キャンセル</button></div>`);}
+function submitMessage(){const title=document.getElementById('msgTitle').value.trim();const body=document.getElementById('msgBody').value.trim();if(!title||!body){showToast('タイトルと本文を入力してください');return;}data.messages.push({id:Date.now(),date:new Date().toISOString().slice(0,10),title,body});saveData();closeModal();showToast('投稿しました');render();}
+function deleteMessage(id){if(!confirm('削除しますか？'))return;data.messages=data.messages.filter(m=>m.id!==id);saveData();showToast('削除しました');render();}
+
+// 5. ATTENDANCE
+function renderAttendance(){
+  const dates=Object.keys(data.attendance).sort();
+  if(!dates.length) return `<div class="card"><button class="btn btn-primary" onclick="addAttendanceDate()">+ 日付を追加</button><div class="empty-state"><div class="icon">✅</div>部会の日付が登録されていません</div></div>`;
+  let html=`<div class="card"><button class="btn btn-primary" onclick="addAttendanceDate()" style="margin-bottom:12px">+ 日付を追加</button><div class="attendance-table"><table><thead><tr><th>名前</th>`;
+  dates.forEach(d=>{html+=`<th style="white-space:nowrap">${d}<br><button class="btn btn-sm btn-danger" onclick="removeAttendanceDate('${d}')" style="margin-top:2px">削除</button></th>`;});
+  html+=`</tr></thead><tbody>`;
+  MEMBERS.forEach(g=>{html+=`<tr class="grade-sep"><td colspan="${dates.length+1}">${g.grade}</td></tr>`;g.names.forEach(m=>{html+=`<tr><td style="white-space:nowrap;font-weight:500">${escHtml(m)}</td>`;dates.forEach(d=>{if(!data.attendance[d])data.attendance[d]={};const val=data.attendance[d][m]||'';html+=`<td class="${val==='〇'?'circle':val==='×'?'cross':''}" onclick="toggleAttendance('${d}','${escHtml(m)}')">${val||'−'}</td>`;});html+=`</tr>`;});});
+  return html+`</tbody></table></div></div>`;
+}
+function toggleAttendance(date,member){if(!data.attendance[date])data.attendance[date]={};const cur=data.attendance[date][member]||'';data.attendance[date][member]=cur==='〇'?'×':cur==='×'?'':'〇';if(data.attendance[date][member]==='')delete data.attendance[date][member];saveData();render();}
+function addAttendanceDate(){openModal(`<h3>部会の日付を追加</h3><div class="form-group"><label>日付</label><input type="date" id="attDate"></div><div style="display:flex;gap:8px;margin-top:8px"><button class="btn btn-primary" onclick="submitAttendanceDate()">追加</button><button class="btn btn-ghost" onclick="closeModal()">キャンセル</button></div>`);}
+function submitAttendanceDate(){const d=document.getElementById('attDate').value;if(!d){showToast('日付を選択してください');return;}if(!data.attendance[d])data.attendance[d]={};saveData();closeModal();showToast('追加しました');render();}
+function removeAttendanceDate(date){if(!confirm(`日付「${date}」を削除しますか？（出欠データも消えます）`))return;delete data.attendance[date];saveData();showToast('削除しました');render();}
+
+// 6. PHOTOS
+function renderPhotos(){
+  const tree=data.photos||{};const folders=Object.keys(tree);let currentContent=null;
+  if(photoPath.length===0){
+    currentContent=folders.map(f=>`<div class="folder-item" onclick="enterPhotoFolder('${escHtml(f)}')">
+      <span class="folder-icon">📁</span><span style="font-weight:500;color:#1f2937">${escHtml(f)}</span>
+      <span style="margin-left:auto;font-size:12px;color:#9ca3af">${(tree[f]||[]).length}枚</span>
+    </div>`).join('')||'<div class="empty-state"><div class="icon">📂</div>フォルダがありません</div>';
+    currentContent+=`<button class="btn btn-primary" onclick="createFolder()" style="margin-top:12px">+ フォルダを作成</button>`;
+  }else{
+    const folderName=photoPath[photoPath.length-1];const photosArr=tree[folderName]||[];
+    currentContent=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px">
+      <button class="btn btn-ghost btn-sm" onclick="photoPath.pop();render()">← 戻る</button>
+      <div style="display:flex;gap:8px"><button class="btn btn-primary btn-sm" onclick="uploadPhoto()">+ 写真を追加</button>
+      <button class="btn btn-danger btn-sm" onclick="deleteFolder('${escHtml(folderName)}')">フォルダを削除</button></div>
+    </div>`;
+    if(photosArr.length){currentContent+=`<div class="photo-grid">${photosArr.map(p=>`<div class="photo-item" onclick="openPhotoModal('${escHtml(p.data)}','${escHtml(p.name)}')"><img src="${escHtml(p.data)}" alt="${escHtml(p.name)}" loading="lazy"></div>`).join('')}</div>`;}
+    else{currentContent+='<div class="empty-state"><div class="icon">🖼️</div>写真がありません</div>';}
+  }
+  return `<div class="card"><div class="breadcrumb"><span onclick="photoPath=[];render()">写真館</span>${photoPath.map((f,i)=>`<span class="sep">/</span><span onclick="photoPath=photoPath.slice(0,${i+1});render()">${escHtml(f)}</span>`).join('')}</div>${currentContent}</div>`;
+}
+function enterPhotoFolder(name){photoPath.push(name);render();}
+function createFolder(){openModal(`<h3>新しいフォルダ</h3><div class="form-group"><label>フォルダ名</label><input type="text" id="folderName" placeholder="フォルダ名"></div><div style="display:flex;gap:8px;margin-top:8px"><button class="btn btn-primary" onclick="submitFolder()">作成</button><button class="btn btn-ghost" onclick="closeModal()">キャンセル</button></div>`);}
+function submitFolder(){const name=document.getElementById('folderName').value.trim();if(!name){showToast('フォルダ名を入力してください');return;}if(!data.photos[name])data.photos[name]=[];saveData();closeModal();showToast('作成しました');render();}
+function deleteFolder(name){if(!confirm(`フォルダ「${name}」を削除しますか？（中の写真も全て消えます）`))return;delete data.photos[name];photoPath=[];saveData();showToast('削除しました');render();}
+function uploadPhoto(){uploadFolder=photoPath[photoPath.length-1];openModal(`<h3>写真を追加</h3><div class="form-group"><label>画像ファイルを選択</label><input type="file" id="photoFile" accept="image/*" onchange="previewPhoto()"></div><div id="photoPreview" style="margin-bottom:10px;display:none"><img id="previewImg" style="max-width:100%;max-height:200px;border-radius:8px"></div><div style="display:flex;gap:8px;margin-top:8px"><button class="btn btn-primary" onclick="submitPhoto()">アップロード</button><button class="btn btn-ghost" onclick="closeModal()">キャンセル</button></div>`);}
+function previewPhoto(){const file=document.getElementById('photoFile').files[0];if(!file)return;const reader=new FileReader();reader.onload=function(e){document.getElementById('previewImg').src=e.target.result;document.getElementById('photoPreview').style.display='block';uploadFile=e.target.result;};reader.readAsDataURL(file);}
+function submitPhoto(){const file=document.getElementById('photoFile').files[0];if(!file){showToast('ファイルを選択してください');return;}if(!uploadFile){showToast('画像の読み込みに失敗しました');return;}const folder=uploadFolder||'その他';if(!data.photos[folder])data.photos[folder]=[];data.photos[folder].push({name:file.name,data:uploadFile});saveData();closeModal();showToast('アップロードしました');render();}
+function openPhotoModal(src,name){document.getElementById('modalImgSrc').src=src;document.getElementById('downloadBtn').href=src;document.getElementById('downloadBtn').download=name;document.getElementById('modalImg').classList.add('open');}
+function closeImgModal(){document.getElementById('modalImg').classList.remove('open');}
+document.getElementById('modalImg').addEventListener('click',function(e){if(e.target===this)closeImgModal();});
+
+function escHtml(s){if(typeof s!=='string')return s;return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+render();
+</script>
+</body>
+</html>
